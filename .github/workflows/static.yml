@@ -23,6 +23,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install discord.py selenium webdriver-manager
         pip install pynacl
+        sudo apt update
+        sudo apt install ffmpeg
 
     - name: Install Chrome and ChromeDriver
       run: |
