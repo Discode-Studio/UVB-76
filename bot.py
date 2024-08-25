@@ -24,7 +24,7 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 # Fonction pour démarrer l'audio WebSDR
 async def start_audio_websdr():
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    driver.get('http://websdr.78dx.ru:8901/?tune=4625usb')
+    driver.get('https://www.youtube.com/live/8h_D2P0iqMk?si=lkCa7Knww42CUIF6')
 
     try:
         driver.implicitly_wait(10)  # Temps d'attente implicite en secondes
