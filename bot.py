@@ -6,81 +6,72 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-import subprocess
 import asyncio
+import subprocess
 
 # Configuration du bot Discord
 intents = discord.Intents.default()
-intents.message_content = True  # Activer pour recevoir les messages
-intents.voice_states = True  # Pour rejoindre les salons vocaux
+intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# Configuration de Selenium pour contrôler le navigateur WebSDR
+# Configuration de Selenium
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Exécuter en mode headless
+chrome_options.add_argument("--headless")  # Exécuter Chrome en mode headless
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
-# Fonction pour jouer le buzzer UVB-76 en rejoignant le salon vocal
-async def play_buzzer(vc):
-    source = discord.FFmpegPCMAudio('uvb_buzzer.wav')  # Chemin vers le fichier buzzer
-    vc.play(source)
-    while vc.is_playing():
-        await asyncio.sleep(1)
-
-# Fonction pour démarrer et capturer l'audio WebSDR via Selenium et FFmpeg
-async def start_audio_websdr(vc):
-    # Lancer Selenium pour démarrer WebSDR
+# Fonction pour démarrer l'audio WebSDR via Selenium
+async def start_websdr_audio():
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     driver.get('http://websdr.78dx.ru:8901/?tune=4625usb')
 
     try:
-        driver.implicitly_wait(10)  # Attendre que la page se charge
-        # Cliquer sur le bouton "Audio start"
+        driver.implicitly_wait(10)  # Temps d'attente implicite
         start_button = driver.find_element(By.XPATH, '//input[@value="Audio start"]')
         start_button.click()
         print("Clicked on 'Audio start' button.")
-
-        # Utilisation de FFmpeg pour capturer l'audio de WebSDR
-        ffmpeg_command = [
-            'ffmpeg', '-f', 'pulse', '-i', 'default',  # Capture audio avec PulseAudio (Linux)
-            '-ac', '2', '-f', 's16le', '-ar', '48000', 'pipe:1'
-        ]
-        process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
-        vc.play(discord.FFmpegPCMAudio(process.stdout))
-        print("Started streaming WebSDR audio in the voice channel.")
-
     except Exception as e:
-        print(f"Error starting WebSDR audio: {e}")
+        print(f"Error interacting with the page: {e}")
     finally:
-        await asyncio.sleep(10)  # Laisser le temps pour que l'audio démarre
+        await asyncio.sleep(5)  # Attendre que l'audio démarre
         driver.quit()
 
-# Event on_ready pour rejoindre un salon vocal et démarrer l'audio
+# Fonction pour capturer l'audio avec ffmpeg et le diffuser sur Discord
+async def stream_websdr_to_discord(vc):
+    ffmpeg_command = [
+        'ffmpeg',
+        '-i', 'http://websdr.78dx.ru:8901/?tune=4625usb',  # Lien WebSDR avec la fréquence
+        '-f', 's16le',  # Format de sortie audio
+        '-ar', '48000',  # Taux d'échantillonnage
+        '-ac', '2',  # Nombre de canaux audio
+        'pipe:1'  # Pipe pour rediriger l'audio vers Discord
+    ]
+
+    # Lancer ffmpeg pour capturer l'audio
+    ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
+
+    # Créer une source audio Discord à partir du flux ffmpeg
+    source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(ffmpeg_process.stdout))
+
+    # Jouer l'audio capturé dans le salon vocal
+    vc.play(source)
+
+# Event on_ready pour joindre automatiquement le salon vocal et démarrer le flux WebSDR
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
 
-    # Nom du salon vocal à rejoindre
-    voice_channel_name = "3"  # Remplacez par le nom du salon vocal
+    # Récupérer le salon vocal à partir de son nom ou ID (ici "3")
+    guild = discord.utils.get(bot.guilds)  # Utilisez la méthode appropriée pour obtenir la guild
+    voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Nom du salon vocal
+    
+    if voice_channel:
+        vc = await voice_channel.connect()
+        await start_websdr_audio()  # Démarrer l'audio WebSDR
+        await stream_websdr_to_discord(vc)  # Capturer et diffuser l'audio sur Discord
+    else:
+        print("Le salon vocal n'a pas été trouvé.")
 
-    # Récupérer le serveur et le salon vocal
-    guild = discord.utils.get(bot.guilds, id=1248150852368072804)  # Remplacez par l'ID de votre serveur
-    voice_channel = discord.utils.get(guild.voice_channels, name=voice_channel_name)
-
-    if voice_channel is None:
-        print(f"Voice channel '{voice_channel_name}' not found.")
-        return
-
-    # Connexion au salon vocal
-    vc = await voice_channel.connect()
-
-    # Jouer le son de buzzer UVB-76 à la connexion
-    await play_buzzer(vc)
-
-    # Démarrer la capture audio WebSDR
-    await start_audio_websdr(vc)
-
-# Lancer le bot Discord avec le token
+# Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
