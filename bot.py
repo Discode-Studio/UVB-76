@@ -1,58 +1,47 @@
-import os
 import discord
 from discord.ext import commands
-import yt_dlp as youtube_dl
-import tempfile
 import subprocess
+import os
 
-TOKEN = os.getenv('DISCORD_BOT_TOKEN')  # Ton token Discord
-VOICE_CHANNEL_ID = 1248150853295149191   # ID du salon vocal
-YOUTUBE_URL = 'https://www.youtube.com/live/8h_D2P0iqMk?si=UAAJO0ghOHijDBSE'  # URL du live YouTube
-COOKIES_FILE = 'cookies.txt'  # Chemin vers le fichier cookies
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")  # Utilisation du secret GitHub pour le token
 
-# Initialiser le bot Discord
-bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
+# Configurer le bot Discord
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'Bot connecté comme {bot.user}')
-    voice_channel = bot.get_channel(VOICE_CHANNEL_ID)
-    if voice_channel is not None:
-        vc = await voice_channel.connect()
+    print(f'{bot.user} est connecté à Discord!')
+    
+    # Connexion au salon vocal
+    voice_channel = discord.utils.get(bot.get_all_channels(), name='Général')  # Remplace par le nom de ton salon vocal
+    if voice_channel is None:
+        print("Salon vocal non trouvé.")
+        return
+    
+    vc = await voice_channel.connect()
+    
+    # URL du flux audio WebSDR
+    stream_url = "http://websdr.78dx.ru:8901/"  # Remplace par l'URL correcte du flux audio si nécessaire
 
-        # Télécharger le flux audio en utilisant yt-dlp avec cookies
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'outtmpl': '-',
-            'cookies': COOKIES_FILE,  # Utiliser les cookies pour l'authentification
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'wav',
-                'preferredquality': '192',
-            }],
-        }
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(YOUTUBE_URL, download=False)
-            url = info['formats'][0]['url']
-
-        # Créer un fichier temporaire pour stocker l'audio
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
-            tmp_file.close()
-            # Télécharger l'audio depuis l'URL
-            ffmpeg_command = [
-                'ffmpeg', '-i', url, '-f', 'wav', tmp_file.name
-            ]
-            subprocess.run(ffmpeg_command, check=True)
-
-            # Lire l'audio du fichier temporaire
-            vc.play(discord.FFmpegPCMAudio(tmp_file.name))
-
-        print(f"Diffusion en cours sur {voice_channel.name}")
+    # Utiliser FFmpeg pour lire le flux audio dans Discord
+    process = subprocess.Popen(
+        ["ffmpeg", "-i", stream_url, "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1"],
+        stdout=subprocess.PIPE
+    )
+    
+    # Jouer l'audio dans Discord
+    vc.play(discord.FFmpegPCMAudio(process.stdout))
+    
+    # Optionnel : ajouter un message pour confirmer que l'audio est joué
+    await voice_channel.send("Je joue maintenant le flux audio du WebSDR.")
 
 @bot.command()
 async def stop(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
+    else:
+        await ctx.send("Je ne suis pas connecté à un salon vocal.")
 
 bot.run(TOKEN)
