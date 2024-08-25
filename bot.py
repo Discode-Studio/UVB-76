@@ -39,8 +39,11 @@ async def start_audio_websdr():
 
 # Fonction pour diffuser un fichier audio (le buzzer) sur Discord
 async def play_buzzer(vc):
-    source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio('uvb_buzzer.wav'))  # Chemin vers le fichier buzzer
-    vc.play(source)
+    if not vc.is_playing():  # Vérifie si le bot n'est pas déjà en train de jouer un audio
+        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio('uvb_buzzer.wav'))  # Chemin vers le fichier buzzer
+        vc.play(source)
+    else:
+        print("Already playing audio. Skipping buzzer.")
 
 # Fonction pour diffuser l'audio PulseAudio sur Discord
 async def stream_system_audio_to_discord(vc):
@@ -59,8 +62,11 @@ async def stream_system_audio_to_discord(vc):
     ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
     
     # Transmettre l'audio capturé sur Discord
-    source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(ffmpeg_process.stdout, pipe=True))
-    vc.play(source)
+    if not vc.is_playing():  # Vérifie si le bot n'est pas déjà en train de jouer un audio
+        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(ffmpeg_process.stdout, pipe=True))
+        vc.play(source)
+    else:
+        print("Already playing audio. Skipping system audio.")
 
 # Event on_ready pour afficher que le bot est prêt et rejoindre le canal vocal automatiquement
 @bot.event
