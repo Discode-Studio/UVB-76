@@ -37,6 +37,11 @@ async def start_audio_websdr():
         await asyncio.sleep(5)  # Temps pour s'assurer que l'audio est démarré
         driver.quit()
 
+# Fonction pour diffuser un fichier audio (le buzzer) sur Discord
+async def play_buzzer(vc):
+    source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio('uvb_buzzer.wav'))  # Chemin vers le fichier buzzer
+    vc.play(source)
+
 # Fonction pour diffuser l'audio PulseAudio sur Discord
 async def stream_system_audio_to_discord(vc):
     # Lancer FFmpeg avec PulseAudio pour capturer l'audio du système
@@ -54,7 +59,7 @@ async def stream_system_audio_to_discord(vc):
     ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
     
     # Transmettre l'audio capturé sur Discord
-    source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(ffmpeg_process.stdout))
+    source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(ffmpeg_process.stdout, pipe=True))
     vc.play(source)
 
 # Event on_ready pour afficher que le bot est prêt et rejoindre le canal vocal automatiquement
@@ -67,9 +72,14 @@ async def on_ready():
     voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Nom du salon vocal
     vc = await voice_channel.connect()
 
+    # Jouer le buzzer au démarrage
+    await play_buzzer(vc)
+
     # Démarrer la capture et diffusion audio WebSDR
     await start_audio_websdr()
-    await stream_system_audio_to_discord(vc)  # Capturer et diffuser l'audio sur Discord
+    
+    # Diffuser l'audio système capturé par PulseAudio
+    await stream_system_audio_to_discord(vc)
 
 # Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
