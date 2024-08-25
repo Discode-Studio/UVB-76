@@ -35,20 +35,20 @@ async def start_websdr_audio():
         print(f"Error interacting with the page: {e}")
     finally:
         await asyncio.sleep(5)  # Attendre que l'audio démarre
-        driver.quit()
 
-# Fonction pour capturer l'audio avec ffmpeg et le diffuser sur Discord
-async def stream_websdr_to_discord(vc):
+# Fonction pour capturer l'audio système et le diffuser sur Discord
+async def stream_system_audio_to_discord(vc):
     ffmpeg_command = [
         'ffmpeg',
-        '-i', 'http://websdr.78dx.ru:8901/?tune=4625usb',  # Lien WebSDR avec la fréquence
+        '-f', 'pulse',  # Utilisation de PulseAudio pour capturer l'audio du système
+        '-i', 'default',  # Capturer l'audio à partir du périphérique audio par défaut
         '-f', 's16le',  # Format de sortie audio
         '-ar', '48000',  # Taux d'échantillonnage
         '-ac', '2',  # Nombre de canaux audio
         'pipe:1'  # Pipe pour rediriger l'audio vers Discord
     ]
 
-    # Lancer ffmpeg pour capturer l'audio
+    # Lancer ffmpeg pour capturer l'audio système
     ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
 
     # Créer une source audio Discord à partir du flux ffmpeg
@@ -69,7 +69,7 @@ async def on_ready():
     if voice_channel:
         vc = await voice_channel.connect()
         await start_websdr_audio()  # Démarrer l'audio WebSDR
-        await stream_websdr_to_discord(vc)  # Capturer et diffuser l'audio sur Discord
+        await stream_system_audio_to_discord(vc)  # Capturer et diffuser l'audio sur Discord
     else:
         print("Le salon vocal n'a pas été trouvé.")
 
