@@ -60,7 +60,7 @@ async def on_ready():
     voice_channel_name = "3"  # Remplacez par le nom du salon vocal souhaité
     
     # Récupérer le serveur et le salon vocal
-    guild = discord.utils.get(bot.guilds, id=<YOUR_GUILD_ID>)  # Remplacez par l'ID de votre serveur
+    guild = discord.utils.get(bot.guilds, id=1248150852368072804)  # Remplacez par l'ID de votre serveur
     voice_channel = discord.utils.get(guild.voice_channels, name=voice_channel_name)
     
     if voice_channel is None:
