@@ -6,7 +6,7 @@ import os
 
 # Définir les intents requis
 intents = discord.Intents.default()
-intents.message_content = True  # Permet au bot de lire le contenu des messages
+intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -17,21 +17,34 @@ async def on_ready():
     if voice_channel:
         vc = await voice_channel.connect()
 
-        url = 'http://websdr.78dx.ru:8901/'
+        # URL pour la fréquence spécifique
+        url = 'http://websdr.78dx.ru:8901/?tune=4625usb'
 
+        # Création d'un fichier temporaire pour stocker le flux audio
         with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
             temp_file_path = temp_file.name
             print(f'Temporary file created at: {temp_file_path}')
 
+        # Commande ffmpeg pour récupérer le flux audio
         command = [
             'ffmpeg',
             '-i', url,
             '-f', 'wav',
+            '-ar', '44100',  # Taux d'échantillonnage
+            '-ac', '2',      # Nombre de canaux audio
             temp_file_path
         ]
-        subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        try:
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process.communicate()  # Attendre que le processus ffmpeg se termine
+        except Exception as e:
+            print(f"Error running ffmpeg: {e}")
 
-        vc.play(discord.FFmpegPCMAudio(temp_file_path))
+        if os.path.getsize(temp_file_path) > 0:  # Vérifier que le fichier n'est pas vide
+            vc.play(discord.FFmpegPCMAudio(temp_file_path))
+        else:
+            print("Le fichier temporaire est vide. Vérifie l'URL du flux audio.")
 
-# Le token est maintenant récupéré depuis une variable d'environnement
+# Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
