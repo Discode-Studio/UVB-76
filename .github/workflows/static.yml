@@ -26,6 +26,11 @@ jobs:
           pip install pynacl
           pip install yt-dlp
 
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Run Discord Bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}  # Utilisation du secret pour le token
