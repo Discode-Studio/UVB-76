@@ -1,4 +1,4 @@
-qname: Restart Discord Bot Every 6 Hours
+name: UVB-76 BOT
 
 on:
   schedule:
