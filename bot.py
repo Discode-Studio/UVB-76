@@ -6,7 +6,7 @@ import tempfile
 import subprocess
 
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')  # Ton token Discord
-VOICE_CHANNEL_ID = 123456789012345678   # ID du salon vocal
+VOICE_CHANNEL_ID = 1248150853295149191   # ID du salon vocal
 YOUTUBE_URL = 'https://www.youtube.com/live/8h_D2P0iqMk?si=UAAJO0ghOHijDBSE'  # URL du live YouTube
 COOKIES_FILE = 'cookies.txt'  # Chemin vers le fichier cookies
 
