@@ -4,7 +4,11 @@ import subprocess
 import tempfile
 import os
 
-bot = commands.Bot(command_prefix='!')
+# Définir les intents requis
+intents = discord.Intents.default()
+intents.message_content = True  # Permet au bot de lire le contenu des messages
+
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
