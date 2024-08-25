@@ -2,6 +2,6 @@
 # This file is formatted according to the Netscape cookie specification.
 # This is a comment line. Comment lines start with #.
 youtube.com    TRUE    /    FALSE    1692606851    SID    g.a000nQi_2Duj-Ll7LG72rMAYGCBc2zaGCOjKVxCfezr5G5uTVN0eO_gKnpSeALMxG49hbAzzhQACgYKATASARMSFQHGX2MiZQAWS9td9I3iNO8du-3SAxoVAUF8yKrIJJZqGQR5y5f3RJ48TinC0076
-youtube.com    TRUE    /    FALSE    1692606851    HSID    <valeur_de_ton_cookie>
+youtube.com    TRUE    /    FALSE    1692606851    HSID    Ar6gis88Yzcu3MDPn
 youtube.com    TRUE    /    FALSE    1692606851    SSID    <valeur_de_ton_cookie>
 youtube.com    TRUE    /    FALSE    1692606851    APISID  <valeur_de_ton_cookie>
