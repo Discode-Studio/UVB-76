@@ -15,7 +15,7 @@ async def on_ready():
     print(f'{bot.user} est connecté à Discord!')
     
     # Connexion au salon vocal
-    voice_channel = discord.utils.get(bot.get_all_channels(), name='Général')  # Remplace par le nom de ton salon vocal
+    voice_channel = discord.utils.get(bot.get_all_channels(), name='3')  # Remplace par le nom de ton salon vocal
     if voice_channel is None:
         print("Salon vocal non trouvé.")
         return
