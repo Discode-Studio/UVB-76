@@ -25,6 +25,8 @@ jobs:
         pip install pynacl
         sudo apt update
         sudo apt install ffmpeg
+        sudo apt update
+        sudo apt install pulseaudio
 
     - name: Install Chrome and ChromeDriver
       run: |
