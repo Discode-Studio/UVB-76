@@ -1,0 +1,7 @@
+# HTTP cookie file.
+# This file is formatted according to the Netscape cookie specification.
+# This is a comment line. Comment lines start with #.
+youtube.com    TRUE    /    FALSE    1692606851    SID    <valeur_de_ton_cookie>
+youtube.com    TRUE    /    FALSE    1692606851    HSID    <valeur_de_ton_cookie>
+youtube.com    TRUE    /    FALSE    1692606851    SSID    <valeur_de_ton_cookie>
+youtube.com    TRUE    /    FALSE    1692606851    APISID  <valeur_de_ton_cookie>
