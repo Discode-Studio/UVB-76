@@ -58,7 +58,7 @@ async def on_ready():
     
     # Rejoindre le salon vocal automatiquement
     guild = discord.utils.get(bot.guilds)
-    voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Nom du salon vocal
+    voice_channel = discord.utils.get(guild.voice_channels, name="3 ")  # Nom du salon vocal
     vc = await voice_channel.connect()
 
     # Jouer le long beep 5 fois au démarrage
