@@ -28,6 +28,7 @@ jobs:
         sudo apt update
         sudo apt install pulseaudio
         pip install Flask discord.py discord.py[voice]
+        pip install aiohttp
 
     - name: Install Chrome and ChromeDriver
       run: |
