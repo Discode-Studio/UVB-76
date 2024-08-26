@@ -31,14 +31,19 @@ async def check_uvb_stream_available():
         async with aiohttp.ClientSession() as session:
             async with session.head(uvb_stream_url) as response:
                 return response.status == 200
-    except aiohttp.ClientError:
+    except aiohttp.ClientError as e:
+        print(f"Error checking UVB-76 stream availability: {e}")
         return False
 
 # Fonction pour jouer le stream UVB-76
 async def play_uvb_stream(vc):
     if not vc.is_playing():
-        stream_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(uvb_stream_url))
-        vc.play(stream_source)
+        try:
+            stream_source = discord.FFmpegPCMAudio(uvb_stream_url)
+            vc.play(stream_source)
+            print("UVB-76 stream is now playing.")
+        except Exception as e:
+            print(f"Failed to play UVB-76 stream: {e}")
     else:
         print("Stream already playing.")
 
@@ -62,7 +67,7 @@ async def check_and_connect_to_voice_channels():
 
                     if stream_available:
                         await play_uvb_stream(vc)
-
+                    
                     # Attendre avant de passer au prochain serveur
                     await asyncio.sleep(check_interval_seconds)
                 except Exception as e:
