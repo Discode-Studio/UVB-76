@@ -13,7 +13,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Variables globales
 beep_file = 'beep2.wav'  # Le fichier beep à jouer en boucle
 beep_interval_seconds = 2  # Intervalle entre chaque beep
-uvb_stream_url = 'http://stream.priyom.org:8000/buzzer.ogg.m3u'  # URL du stream UVB-76
+uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
 
 # Fonction pour jouer un fichier audio un certain nombre de fois
 async def play_audio_repeatedly(vc, file, repeat_count, interval_seconds=2):
@@ -45,6 +45,7 @@ async def check_uvb_stream_available():
 # Fonction pour jouer le stream UVB-76
 async def play_uvb_stream(vc):
     if not vc.is_playing():
+        # Lecture du flux audio en direct à partir du lien
         stream_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(uvb_stream_url))
         vc.play(stream_source)
     else:
