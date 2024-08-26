@@ -27,6 +27,7 @@ jobs:
         sudo apt install ffmpeg
         sudo apt update
         sudo apt install pulseaudio
+        pip install Flask discord.py discord.py[voice]
 
     - name: Install Chrome and ChromeDriver
       run: |
