@@ -1,37 +1,46 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import tasks, commands
 import os
 import random
 import asyncio
 
 # Configuration du bot Discord
 intents = discord.Intents.default()
-intents.message_content = True  # Activer l'intention pour les messages
+intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-vc = None  # Variable pour stocker le canal vocal
-current_beep = None  # Garder la trace du son actuel joué
+# Variables globales
+beeps = ['beep1.wav', 'beep2.wav', 'beep3.wav']  # Les fichiers audio des différents beeps
+current_beep = None
 
-# Liste des fichiers de beep
-beeps = ['beep1.wav', 'beep2.wav', 'beep3.wav']
+# Fonction pour jouer un fichier audio un certain nombre de fois
+async def play_audio_repeatedly(vc, file, repeat_count, interval_seconds=2):
+    for _ in range(repeat_count):
+        if not vc.is_playing():  # Vérifie si aucun autre son n'est joué
+            source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(file))
+            vc.play(source)
+            while vc.is_playing():
+                await asyncio.sleep(1)  # Attendre que le son soit joué en entier
+        await asyncio.sleep(interval_seconds)  # Attendre entre chaque répétition
 
-# Fonction pour jouer un beep aléatoire
-async def play_random_beep():
-    global vc, current_beep
-    if vc and not vc.is_playing():
-        beep_file = random.choice(beeps)
-        current_beep = beep_file
-        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(beep_file))
-        vc.play(source)
-        print(f"Playing {beep_file}")
-    elif vc and vc.is_playing():
-        print("Audio is still playing, waiting for it to finish.")
+# Fonction pour jouer le beep aléatoire toutes les 10 minutes
+@tasks.loop(minutes=10)
+async def change_beep(vc):
+    global current_beep
+    new_beep = random.choice(beeps)  # Choisir un beep aléatoire
+    while new_beep == current_beep:  # S'assurer que le nouveau beep est différent
+        new_beep = random.choice(beeps)
 
-# Tâche pour changer de beep toutes les 5 minutes
-@tasks.loop(minutes=5)
-async def change_beep():
-    await play_random_beep()
+    current_beep = new_beep
+    print(f"Playing {current_beep}")
+
+    # Jouer le long beep avant de changer de beep, 3 répétitions
+    await play_audio_repeatedly(vc, 'long_beep.wav', repeat_count=3)
+    await asyncio.sleep(1)  # Attendre un peu avant de jouer le nouveau beep
+
+    # Jouer le nouveau beep 3 fois
+    await play_audio_repeatedly(vc, current_beep, repeat_count=3)
 
 # Event on_ready pour afficher que le bot est prêt et rejoindre le canal vocal automatiquement
 @bot.event
@@ -40,14 +49,14 @@ async def on_ready():
     
     # Rejoindre le salon vocal automatiquement
     guild = discord.utils.get(bot.guilds)
-    global vc
-    voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Remplacez par le nom correct du salon vocal
-    if voice_channel:
-        vc = await voice_channel.connect()
+    voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Nom du salon vocal
+    vc = await voice_channel.connect()
 
-    # Jouer un premier beep aléatoire et démarrer la tâche de changement
-    await play_random_beep()
-    change_beep.start()
+    # Jouer le long beep 15 fois au démarrage
+    await play_audio_repeatedly(vc, 'long_beep.wav', repeat_count=15)
+
+    # Démarrer la boucle de changement de beep
+    change_beep.start(vc)
 
 # Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
