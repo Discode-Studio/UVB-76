@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
-import requests
+import aiohttp  # Nouvelle bibliothèque pour vérifier le stream asynchrone
 
 # Configuration du bot Discord
 intents = discord.Intents.default()
@@ -14,7 +14,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 beep_file = 'http://streams.printf.cc:8000/buzzer.ogg'  # Le fichier beep à jouer en boucle
 beep_interval_seconds = 2  # Intervalle entre chaque beep
 uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
-beep3_file = 'http://streams.printf.cc:8000/buzzer.ogg'  # Le fichier beep3 à jouer en cas d'erreur 404
+beep3_file = 'beep3.wav'  # Le fichier beep3 à jouer en cas d'erreur 404
 
 # Fonction pour jouer un fichier audio un certain nombre de fois
 async def play_audio_repeatedly(vc, file, repeat_count, interval_seconds=2):
@@ -42,13 +42,14 @@ async def play_beep3_in_loop(vc):
             vc.play(source)
         await asyncio.sleep(2)  # Attendre 2 secondes entre chaque beep3
 
-# Fonction pour vérifier si le stream UVB-76 est disponible
+# Fonction pour vérifier si le stream UVB-76 est disponible avec aiohttp
 async def check_uvb_stream_available():
     try:
-        response = requests.head(uvb_stream_url)
-        # Vérifie si la réponse est un code de succès HTTP
-        return response.status_code == 200
-    except requests.RequestException:
+        async with aiohttp.ClientSession() as session:
+            async with session.head(uvb_stream_url) as response:
+                # Vérifie si la réponse est un code de succès HTTP
+                return response.status == 200
+    except aiohttp.ClientError:
         return False
 
 # Fonction pour jouer le stream UVB-76
@@ -91,7 +92,8 @@ async def on_ready():
                 await play_uvb_stream(vc)
             else:
                 # Démarrer la boucle pour jouer beep3.wav toutes les 2 secondes
-                bot.loop.create_task(play_beep3_in_loop(vc))
+                if not vc.is_playing():  # Ne joue beep3 que si rien d'autre n'est en cours
+                    bot.loop.create_task(play_beep3_in_loop(vc))
             await asyncio.sleep(10)  # Vérifie toutes les 10 secondes
 
 # Le token est récupéré depuis une variable d'environnement
