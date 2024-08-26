@@ -1,92 +1,60 @@
+import time
 import discord
 from discord.ext import commands
-import os
-import subprocess
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import asyncio
 
-# Configuration du bot Discord
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Configuration de Selenium
-chrome_options = Options()
-# Désactiver le mode headless pour voir l'interaction
-# chrome_options.add_argument("--headless")  # Désactiver pour voir l'interface
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-
-# Fonction pour démarrer l'audio WebSDR
 async def start_audio_websdr():
+    # Configuration de ChromeOptions pour Selenium
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--headless")  # Exécution en mode headless
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    
+    # Démarrer WebDriver avec ces options
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    
+    # Aller sur le site WebSDR
     driver.get('http://websdr.78dx.ru:8901/?tune=4625usb')
+    print(driver.title)
 
-    try:
-        driver.implicitly_wait(10)  # Temps d'attente implicite en secondes
+    # Optionnel: Attendre quelques secondes pour que la page soit bien chargée
+    time.sleep(5)
 
-        # Attendre que le bouton soit cliquable et cliquer dessus
-        start_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, '//input[@value="Audio start"]'))
-        )
-        start_button.click()
-        print("Clicked on 'Audio start' button.")
+    # Ferme le navigateur après une certaine durée (ou selon vos besoins)
+    # driver.quit()  # Décommentez si vous voulez fermer le navigateur après exécution
 
-        # Afficher les logs du navigateur
-        for log in driver.get_log('browser'):
-            print(log)
-
-    except Exception as e:
-        print(f"Error interacting with the page: {e}")
-    finally:
-        await asyncio.sleep(5)  # Temps pour s'assurer que l'audio est démarré
-        driver.quit()
-
-# Fonction pour diffuser un fichier audio (le buzzer) sur Discord
-async def play_buzzer(vc):
-    if not vc.is_playing():
-        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio('uvb_buzzer.wav'))
-        vc.play(source)
-    else:
-        print("Already playing audio. Skipping buzzer.")
-
-# Fonction pour diffuser l'audio PulseAudio sur Discord
 async def stream_system_audio_to_discord(vc):
-    ffmpeg_command = [
-        'ffmpeg',
-        '-f', 'pulse',
-        '-i', 'default',
-        '-ac', '2',
-        '-f', 's16le',
-        '-ar', '48000',
-        'pipe:1'
-    ]
-    
-    ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE)
-    
-    if not vc.is_playing():
-        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(ffmpeg_process.stdout, pipe=True))
-        vc.play(source)
-    else:
-        print("Already playing audio. Skipping system audio.")
+    # Exemple de configuration pour diffuser l'audio via FFmpeg (assurez-vous d'avoir les fichiers requis)
+    ffmpeg_process = discord.FFmpegPCMAudio('uvb_buzzer.wav')
+    source = discord.PCMVolumeTransformer(ffmpeg_process)
+    vc.play(source)
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user.name}')
+    print(f'Connecté en tant que {bot.user}')
     
-    guild = discord.utils.get(bot.guilds)
-    voice_channel = discord.utils.get(guild.voice_channels, name="3")
+    # Connexion à un canal vocal Discord
+    guild = discord.utils.get(bot.guilds, name='Nom de votre serveur')  # Mettez le nom de votre serveur ici
+    voice_channel = discord.utils.get(guild.voice_channels, name='Nom du canal vocal')  # Mettez le nom du canal vocal ici
+    
     vc = await voice_channel.connect()
 
-    await play_buzzer(vc)
+    # Démarre la diffusion de l'audio WebSDR
     await start_audio_websdr()
+
+    # Diffuse un fichier audio local (par exemple, uvb_buzzer.wav) dans Discord
     await stream_system_audio_to_discord(vc)
 
-bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+# Lancement du bot Discord
+bot.run('YOUR_DISCORD_BOT_TOKEN')
