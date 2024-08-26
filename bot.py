@@ -52,13 +52,13 @@ def stop_beep3():
     global is_beep3_playing
     is_beep3_playing = False  # Arrêter la lecture de beep3
 
-# Fonction pour vérifier si le stream UVB-76 est disponible avec aiohttp
-async def check_uvb_stream_available():
+# Fonction pour vérifier si le stream UVB-76 est disponible et si l'erreur est 404
+async def check_uvb_stream_404():
     try:
         async with aiohttp.ClientSession() as session:
             async with session.head(uvb_stream_url) as response:
-                # Vérifie si la réponse est un code de succès HTTP
-                return response.status == 200
+                # Vérifie si la réponse est exactement une 404 (Not Found)
+                return response.status == 404
     except aiohttp.ClientError:
         return False
 
@@ -89,9 +89,9 @@ async def check_and_connect_to_voice_channels():
 async def monitor_uvb_stream(vc):
     global stream_task
     while True:
-        stream_available = await check_uvb_stream_available()
-        if stream_available:
-            stop_beep3()  # Arrêter beep3 si le stream est disponible
+        uvb_is_404 = await check_uvb_stream_404()
+        if not uvb_is_404:
+            stop_beep3()  # Arrêter beep3 si le stream n'est pas en 404
             if not vc.is_playing():  # Ne jouer le stream que s'il n'est pas déjà joué
                 await play_uvb_stream(vc)
         else:
