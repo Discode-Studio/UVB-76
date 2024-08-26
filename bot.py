@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 import os
 import subprocess
+import asyncio
 
 app = Flask(__name__)
 
@@ -23,6 +24,19 @@ async def play_sound(vc, file_path):
     playing_sound = discord.FFmpegPCMAudio(file_path)
     vc.play(playing_sound)
 
+# Fonction pour capturer et diffuser le son du WebSDR
+async def stream_websdr(vc):
+    # Assurer que ffmpeg est installé et configuré correctement
+    command = [
+        'ffmpeg',
+        '-i', 'http://websdr.78dx.ru:8901/?tune=4625usb',
+        '-f', 'wav',
+        'pipe:1'
+    ]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    source = discord.FFmpegPCMAudio(process.stdout, pipe=True)
+    vc.play(source)
+
 # Route pour la page d'accueil avec les boutons
 @app.route('/')
 def index():
@@ -37,52 +51,52 @@ def play():
     sound = request.json.get('sound')
     loop = request.json.get('loop')
 
+    # Log des données reçues
+    print(f'Received play request: sound={sound}, loop={loop}')
+
     # Définition des chemins des sons
     sound_paths = {
         'beep1': 'beep1.wav',
         'beep2': 'beep2.wav',
         'beep3': 'beep3.wav',
         'msbuzzer': 'msbuzzer.wav',
-        'uvb76': 'http://websdr.78dx.ru:8901/?tune=4625usb'  # Lien WebSDR pour UVB-76
+        'uvb76': 'websdr'  # Utilise le flux WebSDR pour UVB-76
     }
 
-    file_path = sound_paths.get(sound)
-
-    # Si la case boucle est cochée
-    looping = loop
-
-    if file_path:
-        # Lancer la tâche de jouer le son
-        bot.loop.create_task(play_sound(vc, file_path))
-        return jsonify({'status': 'playing', 'sound': sound})
+    if sound in sound_paths:
+        file_path = sound_paths[sound]
+        if file_path == 'websdr':
+            asyncio.run(stream_websdr(vc))
+        else:
+            asyncio.run(play_sound(vc, file_path))
+        
+        looping = loop
+        return jsonify({"status": "success", "message": f"Playing {sound}"})
     else:
-        return jsonify({'status': 'error', 'message': 'Invalid sound'}), 400
+        return jsonify({"status": "error", "message": "Invalid sound"}), 400
 
-# API pour arrêter le son
+# API pour arrêter la lecture
 @app.route('/stop', methods=['POST'])
 def stop():
     global vc
-    if vc and vc.is_playing():
+    if vc.is_playing():
         vc.stop()
-    return jsonify({'status': 'stopped'})
+    return jsonify({"status": "success", "message": "Playback stopped"})
 
-# Tâche Discord pour se connecter à un canal vocal
+# Démarrer le bot Discord
 @bot.event
 async def on_ready():
+    global vc
     print(f'Logged in as {bot.user.name}')
+    
+    # Rejoindre le salon vocal automatiquement
     guild = discord.utils.get(bot.guilds)
     voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Nom du salon vocal
-    global vc
     vc = await voice_channel.connect()
 
-# Démarrer le bot Discord dans un thread séparé
-def run_discord_bot():
-    bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+# Le token est récupéré depuis une variable d'environnement
+bot.run(os.getenv('DISCORD_BOT_TOKEN'))
 
-# Exécution du serveur Flask
+# Lancer le serveur Flask
 if __name__ == '__main__':
-    # Lancer Discord dans une tâche asynchrone
-    import threading
-    threading.Thread(target=run_discord_bot).start()
-    # Lancer le serveur Flask
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, port=5000)
