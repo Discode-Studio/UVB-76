@@ -17,11 +17,11 @@ beep3_file = 'beep3.wav'  # Fichier beep3
 beep_interval_seconds = 2  # Intervalle entre chaque beep
 uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
 cooldown_interval_seconds = 1  # Délai entre chaque serveur
+beep3_playing = {}  # Pour suivre les serveurs jouant beep3
 
 # Fonction pour jouer un fichier audio un certain nombre de fois
 async def play_audio_repeatedly(vc, file, repeat_count, interval_seconds=2):
     for _ in range(repeat_count):
-        print(f"Attempting to play: {file}")
         if not vc.is_playing():
             source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(file))
             vc.play(source)
@@ -60,7 +60,9 @@ async def play_beep3_until_stream_available(vc):
         if not vc.is_playing():
             source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(beep3_file))
             vc.play(source)
+            beep3_playing[vc.guild.id] = True
         await asyncio.sleep(beep_interval_seconds)
+    beep3_playing[vc.guild.id] = False
 
 # Fonction pour vérifier et se connecter aux salons vocaux
 async def check_and_connect_to_voice_channels():
@@ -68,27 +70,36 @@ async def check_and_connect_to_voice_channels():
         voice_channel = discord.utils.get(guild.voice_channels, name="General")
         vc = discord.utils.get(bot.voice_clients, guild=guild)
         
-        if voice_channel and vc is None:
-            try:
-                vc = await voice_channel.connect()
-                print(f"Connected to voice channel in guild: {guild.name}")
-                
-                # Jouer le long beep 5 fois au démarrage
-                await play_audio_repeatedly(vc, 'long_beep.wav', repeat_count=5)
-                
-                # Vérifier la disponibilité du stream UVB-76
-                stream_available = await check_uvb_stream_available()
-                
-                if stream_available:
-                    await play_uvb_stream(vc)
-                else:
-                    # Si le stream n'est pas disponible, jouer beep3 en boucle
-                    bot.loop.create_task(play_beep3_until_stream_available(vc))
+        if voice_channel:
+            if vc is None or not vc.is_connected():
+                try:
+                    vc = await voice_channel.connect()
+                    print(f"Connected to voice channel in guild: {guild.name}")
+                    
+                    # Jouer le long beep 5 fois au démarrage
+                    await play_audio_repeatedly(vc, 'long_beep.wav', repeat_count=5)
+                    
+                    # Vérifier la disponibilité du stream UVB-76
+                    stream_available = await check_uvb_stream_available()
+                    
+                    if stream_available:
+                        await play_uvb_stream(vc)
+                    else:
+                        # Si le stream n'est pas disponible, jouer beep3 en boucle
+                        if guild.id not in beep3_playing or not beep3_playing[guild.id]:
+                            bot.loop.create_task(play_beep3_until_stream_available(vc))
 
-                # Attendre avant de passer au prochain serveur
-                await asyncio.sleep(cooldown_interval_seconds)
+                    # Attendre avant de passer au prochain serveur
+                    await asyncio.sleep(cooldown_interval_seconds)
+                except Exception as e:
+                    print(f"Failed to connect to voice channel in guild: {guild.name}, error: {e}")
+        else:
+            # Créer un salon vocal nommé "General" s'il n'existe pas
+            try:
+                await guild.create_voice_channel(name="General")
+                print(f"Created voice channel 'General' in guild: {guild.name}")
             except Exception as e:
-                print(f"Failed to connect to voice channel in guild: {guild.name}, error: {e}")
+                print(f"Failed to create voice channel in guild: {guild.name}, error: {e}")
 
 @bot.event
 async def on_ready():
@@ -116,7 +127,8 @@ async def on_ready():
                         if stream_available:
                             await play_uvb_stream(vc)
                         else:
-                            bot.loop.create_task(play_beep3_until_stream_available(vc))
+                            if guild.id not in beep3_playing or not beep3_playing[guild.id]:
+                                bot.loop.create_task(play_beep3_until_stream_available(vc))
 
                         await asyncio.sleep(cooldown_interval_seconds)
                     except Exception as e:
@@ -125,7 +137,8 @@ async def on_ready():
                     # Si le bot est déjà connecté et le stream est indisponible, assurer le playback correct
                     stream_available = await check_uvb_stream_available()
                     if not stream_available:
-                        bot.loop.create_task(play_beep3_until_stream_available(vc))
+                        if guild.id not in beep3_playing or not beep3_playing[guild.id]:
+                            bot.loop.create_task(play_beep3_until_stream_available(vc))
             else:
                 # Créer un salon vocal nommé "General" s'il n'existe pas
                 try:
@@ -135,4 +148,4 @@ async def on_ready():
                     print(f"Failed to create voice channel in guild: {guild.name}, error: {e}")
 
 # Le token est récupéré depuis une variable d'environnement
-bot.run(os.getenv('DISCORD_BOT_TOKEN')) 
+bot.run(os.getenv('DISCORD_BOT_TOKEN'))
