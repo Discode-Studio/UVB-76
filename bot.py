@@ -14,7 +14,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 beep_file = 'http://streams.printf.cc:8000/buzzer.ogg'  # Le fichier beep à jouer en boucle
 beep_interval_seconds = 2  # Intervalle entre chaque beep
 uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
-beep3_file = 'beep3.wav'  # Le fichier beep3 à jouer en cas d'erreur 404
+beep3_file = 'http://streams.printf.cc:8000/buzzer.ogg'  # Le fichier beep3 à jouer en cas d'erreur 404
 
 # Fonction pour jouer un fichier audio un certain nombre de fois
 async def play_audio_repeatedly(vc, file, repeat_count, interval_seconds=2):
