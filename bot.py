@@ -82,11 +82,13 @@ def set_stream_playing(guild_id, value):
 async def check_and_connect_to_voice_channels():
     for guild in bot.guilds:
         voice_channel = discord.utils.get(guild.voice_channels, name="General")
-        if voice_channel:
-            if not any(vc.channel == voice_channel for vc in bot.voice_clients):
-                await voice_channel.connect()
-        else:
-            # Si aucun canal vocal "General" n'existe, le créer
+        
+        # Vérification si le bot est déjà connecté à ce serveur
+        vc = discord.utils.get(bot.voice_clients, guild=guild)
+        
+        if voice_channel and vc is None:  # Si un canal existe et le bot n'est pas déjà connecté
+            await voice_channel.connect()
+        elif voice_channel is None:  # Si aucun canal vocal "General" n'existe, le créer
             overwrites = {
                 guild.default_role: discord.PermissionOverwrite(connect=True, speak=True)
             }
@@ -118,7 +120,9 @@ async def on_ready():
     # Pour chaque serveur, connecter au salon "General" et surveiller le stream
     for guild in bot.guilds:
         voice_channel = discord.utils.get(guild.voice_channels, name="General")
-        if voice_channel:
+        vc = discord.utils.get(bot.voice_clients, guild=guild)  # Vérifie si le bot est déjà connecté
+        
+        if voice_channel and vc is None:  # Si le bot n'est pas encore connecté au salon "General"
             vc = await voice_channel.connect()
 
             # Jouer le long beep 5 fois au démarrage
@@ -131,3 +135,4 @@ async def on_ready():
 
 # Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+            
