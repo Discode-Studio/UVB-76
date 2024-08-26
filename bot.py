@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 import os
 import subprocess
-import asyncio
 
 app = Flask(__name__)
 
@@ -24,19 +23,6 @@ async def play_sound(vc, file_path):
     playing_sound = discord.FFmpegPCMAudio(file_path)
     vc.play(playing_sound)
 
-# Fonction pour capturer et diffuser le son du WebSDR
-async def stream_websdr(vc):
-    # Assurer que ffmpeg est installé et configuré correctement
-    command = [
-        'ffmpeg',
-        '-i', 'http://websdr.78dx.ru:8901/?tune=4625usb',
-        '-f', 'wav',
-        'pipe:1'
-    ]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    source = discord.FFmpegPCMAudio(process.stdout, pipe=True)
-    vc.play(source)
-
 # Route pour la page d'accueil avec les boutons
 @app.route('/')
 def index():
@@ -44,12 +30,13 @@ def index():
 
 # API pour jouer un son
 @app.route('/play', methods=['POST'])
-def play():
+async def play():
     global vc, looping
 
     # Récupération des informations de la requête
-    sound = request.json.get('sound')
-    loop = request.json.get('loop')
+    data = request.json
+    sound = data.get('sound')
+    loop = data.get('loop', False)  # Valeur par défaut si 'loop' n'est pas fourni
 
     # Log des données reçues
     print(f'Received play request: sound={sound}, loop={loop}')
@@ -60,43 +47,51 @@ def play():
         'beep2': 'beep2.wav',
         'beep3': 'beep3.wav',
         'msbuzzer': 'msbuzzer.wav',
-        'uvb76': 'websdr'  # Utilise le flux WebSDR pour UVB-76
+        'uvb76': 'http://websdr.78dx.ru:8901/?tune=4625usb'
     }
 
+    # Arrêter l'audio actuel si nécessaire
+    if vc and vc.is_playing():
+        vc.stop()
+
+    # Jouer le son sélectionné
     if sound in sound_paths:
         file_path = sound_paths[sound]
-        if file_path == 'websdr':
-            asyncio.run(stream_websdr(vc))
+        if file_path.startswith('http'):
+            # Pour les URL comme WebSDR, on pourrait avoir besoin d'une logique spécifique
+            pass
         else:
-            asyncio.run(play_sound(vc, file_path))
-        
-        looping = loop
-        return jsonify({"status": "success", "message": f"Playing {sound}"})
-    else:
-        return jsonify({"status": "error", "message": "Invalid sound"}), 400
+            await play_sound(vc, file_path)
+        # Gérer la boucle si activée
+        if loop:
+            looping = True
+        else:
+            looping = False
+        return jsonify({'status': 'success', 'sound': sound, 'loop': loop})
+    return jsonify({'status': 'error', 'message': 'Sound not found'})
 
-# API pour arrêter la lecture
+# API pour arrêter le son
 @app.route('/stop', methods=['POST'])
-def stop():
-    global vc
-    if vc.is_playing():
+async def stop():
+    global vc, looping
+    if vc and vc.is_playing():
         vc.stop()
-    return jsonify({"status": "success", "message": "Playback stopped"})
+    looping = False
+    return jsonify({'status': 'success', 'message': 'Stopped playing'})
 
-# Démarrer le bot Discord
+# Fonction d'événement pour quand le bot est prêt
 @bot.event
 async def on_ready():
-    global vc
     print(f'Logged in as {bot.user.name}')
-    
     # Rejoindre le salon vocal automatiquement
     guild = discord.utils.get(bot.guilds)
+    global vc
     voice_channel = discord.utils.get(guild.voice_channels, name="3")  # Nom du salon vocal
-    vc = await voice_channel.connect()
+    if voice_channel:
+        vc = await voice_channel.connect()
 
 # Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
 
-# Lancer le serveur Flask
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
