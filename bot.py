@@ -72,17 +72,22 @@ async def stream_system_audio_to_discord(vc):
 # Fonction pour jouer un bip court ou long selon le besoin
 async def play_beep(vc, long_beep=False):
     beep_file = 'short_beep.wav' if not long_beep else 'long_beep.wav'
+    print(f"Playing {'long' if long_beep else 'short'} beep")
     await play_buzzer(vc, beep_file)
 
 # Tâche qui vérifie si l'audio est diffusé toutes les 3 secondes
-@tasks.loop(seconds=3)
+@tasks.loop(seconds=2)
 async def check_audio_playing(vc):
     now = datetime.utcnow()
+    print(f"Checking audio at {now.strftime('%H:%M:%S')} UTC")
+    
+    # Vérifier si l'audio n'est pas joué
     if not vc.is_playing():
         await play_beep(vc)  # Jouer un bip court si aucun son n'est joué
 
-    # Jouer un long bip à chaque début de minute (UTC)
-    if now.second == 0:
+    # Jouer un long bip à chaque début de minute avec une tolérance de 2 secondes
+    if now.second in [0, 1, 2]:  # Tolérance de 2 secondes
+        print(f"Minute passed: {now.strftime('%H:%M:%S')} UTC")
         await play_beep(vc, long_beep=True)
 
 # Event on_ready pour afficher que le bot est prêt et rejoindre le canal vocal automatiquement
