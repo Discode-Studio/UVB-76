@@ -14,6 +14,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 beep_file = 'http://streams.printf.cc:8000/buzzer.ogg'  # Le fichier beep à jouer en boucle
 beep_interval_seconds = 2  # Intervalle entre chaque beep
 uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
+beep3_file = 'beep3.wav'  # Le fichier beep3 à jouer en cas d'erreur 404
 
 # Fonction pour jouer un fichier audio un certain nombre de fois
 async def play_audio_repeatedly(vc, file, repeat_count, interval_seconds=2):
@@ -33,6 +34,14 @@ async def play_beep_in_loop(vc):
             vc.play(source)
         await asyncio.sleep(beep_interval_seconds)  # Attendre 2 secondes entre chaque beep
 
+# Fonction pour jouer le beep3 en boucle
+async def play_beep3_in_loop(vc):
+    while True:
+        if not vc.is_playing():  # Jouer le beep3 uniquement si aucun autre son n'est en cours
+            source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(beep3_file))
+            vc.play(source)
+        await asyncio.sleep(2)  # Attendre 2 secondes entre chaque beep3
+
 # Fonction pour vérifier si le stream UVB-76 est disponible
 async def check_uvb_stream_available():
     try:
@@ -51,37 +60,39 @@ async def play_uvb_stream(vc):
     else:
         print("Stream already playing.")
 
+# Fonction pour vérifier les salons et se connecter
+async def check_and_connect_to_voice_channels():
+    for guild in bot.guilds:
+        voice_channel = discord.utils.get(guild.voice_channels, name="General")
+        if voice_channel:
+            if not any(vc.channel == voice_channel for vc in bot.voice_clients):
+                await voice_channel.connect()
+
 # Event on_ready pour afficher que le bot est prêt et rejoindre le canal vocal automatiquement
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
     
-    # Rejoindre le salon vocal automatiquement
-    guild = discord.utils.get(bot.guilds)
-    voice_channel = discord.utils.get(guild.voice_channels, name="General")  # Nom du salon vocal
-    vc = await voice_channel.connect()
+    # Vérifie et connecte aux salons vocaux disponibles
+    await check_and_connect_to_voice_channels()
 
-    # Jouer le long beep 5 fois au démarrage
-    await play_audio_repeatedly(vc, 'long_beep.wav', repeat_count=5)
+    # Obtenir le premier canal vocal disponible
+    if bot.voice_clients:
+        vc = bot.voice_clients[0]
 
-    # Vérifier la disponibilité du stream UVB-76
-    stream_available = await check_uvb_stream_available()
+        # Jouer le long beep 5 fois au démarrage
+        await play_audio_repeatedly(vc, 'long_beep.wav', repeat_count=5)
 
-    if stream_available:
-        # Démarrer la diffusion UVB-76 en continu
-        await play_uvb_stream(vc)
-    else:
-        # Démarrer la boucle pour jouer beep2.wav toutes les 2 secondes
-        bot.loop.create_task(play_beep_in_loop(vc))
-
-    # Surveiller la disponibilité du stream UVB-76 et ajuster le beep en conséquence
-    while True:
-        await asyncio.sleep(10)  # Vérifie toutes les 10 secondes
-        stream_available = await check_uvb_stream_available()
-        if stream_available and not vc.is_playing():  # Si le stream devient disponible et qu'aucun son n'est joué
-            await play_uvb_stream(vc)
-        elif not stream_available and not vc.is_playing():  # Si le stream devient indisponible et qu'aucun son n'est joué
-            bot.loop.create_task(play_beep_in_loop(vc))
+        # Vérifier la disponibilité du stream UVB-76 et jouer le beep3 si 404
+        while True:
+            stream_available = await check_uvb_stream_available()
+            if stream_available:
+                # Démarrer la diffusion UVB-76 en continu
+                await play_uvb_stream(vc)
+            else:
+                # Démarrer la boucle pour jouer beep3.wav toutes les 2 secondes
+                bot.loop.create_task(play_beep3_in_loop(vc))
+            await asyncio.sleep(10)  # Vérifie toutes les 10 secondes
 
 # Le token est récupéré depuis une variable d'environnement
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
