@@ -39,10 +39,10 @@ def play():
 
     # Définition des chemins des sons
     sound_paths = {
-        'beep1': 'path/to/beep1.wav',
-        'beep2': 'path/to/beep2.wav',
-        'beep3': 'path/to/beep3.wav',
-        'msbuzzer': 'path/to/msbuzzer.wav',
+        'beep1': 'beep1.wav',
+        'beep2': 'beep2.wav',
+        'beep3': 'beep3.wav',
+        'msbuzzer': 'msbuzzer.wav',
         'uvb76': 'http://websdr.78dx.ru:8901/?tune=4625usb'  # Lien WebSDR pour UVB-76
     }
 
