@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Soundboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding-top: 50px;
+        }
+        .log {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Discord Soundboard</h1>
+        
+        <h2>Sounds</h2>
+        <button onclick="playSound('beep1')">Play Beep 1</button>
+        <button onclick="playSound('beep2')">Play Beep 2</button>
+        <button onclick="playSound('beep3')">Play Beep 3</button>
+        <button onclick="playSound('msbuzzer')">Play MS Buzzer</button>
+        <button onclick="playSound('uvb76')">Play UVB-76 WebSDR</button>
+
+        <h2>Options</h2>
+        <input type="checkbox" id="loop" name="loop">
+        <label for="loop">Loop sound</label>
+        
+        <h2>Control</h2>
+        <button onclick="stopSound()">Stop Sound</button>
+
+        <div class="log">
+            <h2>Log</h2>
+            <div id="logArea"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logArea = document.getElementById('logArea');
+            logArea.innerHTML += `<p>${message}</p>`;
+        }
+
+        async function playSound(sound) {
+            const loop = document.getElementById('loop').checked;
+            const response = await fetch('/play', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ sound: sound, loop: loop })
+            });
+            const result = await response.json();
+            if (result.status === 'playing') {
+                log(`Playing sound: ${sound}`);
+            } else {
+                log(`Error: ${result.message}`);
+            }
+        }
+
+        async function stopSound() {
+            const response = await fetch('/stop', {
+                method: 'POST',
+            });
+            const result = await response.json();
+            if (result.status === 'stopped') {
+                log('Sound stopped.');
+            }
+        }
+    </script>
+</body>
+</html>
