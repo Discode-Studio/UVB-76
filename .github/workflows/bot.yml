@@ -2,7 +2,7 @@ name: UVB-76 BOT
 
 on:
   schedule:
-    - cron: "4 */6 * * *"  # Toutes les 6 heures
+    - cron: "33 * * * *"  # Toutes les 6 heures
   workflow_dispatch:       # Permet de déclencher manuellement ce workflow
 
 jobs:
@@ -45,8 +45,8 @@ jobs:
         sudo mv chromedriver /usr/local/bin/chromedriver
         sudo chmod +x /usr/local/bin/chromedriver
 
-    - name: Run Discord Bot
+    - name: Run Discord Bot (with 30 minute timeout)
       env:
         DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       run: |
-        python bot.py
+        timeout 30m python bot.py   # Limite à 30 minutes
