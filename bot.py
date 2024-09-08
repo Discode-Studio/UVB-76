@@ -10,7 +10,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Variables globales
-uvb_stream_url = 'y2mate_HrgsElu.mp3'  # URL du stream UVB-76
+uvb_stream_url = 'https://www.youtube.com/embed/DPsEvzwtRY4?si=jrT28Gp3ZY9HXDS-'  # URL du stream UVB-76
 
 # Fonction pour jouer le stream UVB-76
 async def play_uvb_stream(vc):
