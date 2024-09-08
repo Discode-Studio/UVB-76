@@ -14,10 +14,8 @@ Third step wait untill the bot join, if the bot don't join, [~~join the support 
 - Silence - Maybe an issue or a bot problem, join the support server for informations.
 
 # Does it have others bot like this one?
-Actually no, but yes others bot is coming and below you have the list of others coming bots,
+Yes of course and there beside this all of them!
 - The pip (Day)
 - The pip (Night)
 - The wheel (Day)
 - The wheel (Night)
-
-  That all bot under development but other bot can come later...
