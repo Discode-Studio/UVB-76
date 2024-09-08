@@ -10,7 +10,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Variables globales
-uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
+uvb_stream_url = 'https://github.com/Discode-Studio/AudioSource/raw/main/kiwi-kuo.aprs.fi_2024-09-01T20_38_52Z_4621.00_usb.wav'  # URL du stream UVB-76
 
 # Fonction pour jouer le stream UVB-76
 async def play_uvb_stream(vc):
