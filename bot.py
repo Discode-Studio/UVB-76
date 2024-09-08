@@ -10,7 +10,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Variables globales
-uvb_stream_url = 'http://streams.printf.cc:8000/buzzer'  # URL du stream UVB-76
+uvb_stream_url = 'http://streams.printf.cc:8000/buzzer.ogg'  # URL du stream UVB-76
 
 # Fonction pour jouer le stream UVB-76
 async def play_uvb_stream(vc):
