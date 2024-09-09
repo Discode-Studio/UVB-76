@@ -10,7 +10,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Variables globales
-uvb_stream_url = 'https://github.com/Discode-Studio/AudioSource/raw/main/spotifydown.com%20-%20UVB%2076.mp3'  # URL du stream UVB-76
+uvb_stream_url = 'https://spotifydown.com/9b627051-d0ff-40c3-a487-080995538094'  # URL du stream UVB-76
 
 # Fonction pour jouer le stream UVB-76
 async def play_uvb_stream(vc):
