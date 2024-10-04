@@ -41,7 +41,7 @@ async function captureAudioFromWebSDR() {
 
     if (stream) {
       // Envoi du stream audio au serveur Flask
-      const response = await axios.post('http://127.0.0.1:5000/upload-audio', stream, {
+      const response = await axios.post('http://127.0.0.1:5000/stream', stream, {
         headers: {
           'Content-Type': 'audio/webm'  // Format à définir selon la capture
         }
