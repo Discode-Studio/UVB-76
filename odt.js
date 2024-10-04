@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
+const axios = require('axios');
 
-// Fonction pour capturer l'audio depuis un AudioWorklet
+// Fonction pour capturer l'audio depuis un AudioWorklet et l'envoyer au serveur Flask
 async function captureAudioFromWebSDR() {
   const browser = await puppeteer.launch({
     headless: true,  // Mode headless activé
@@ -13,29 +14,42 @@ async function captureAudioFromWebSDR() {
   await page.goto('http://websdr.ewi.utwente.nl:8901/', { waitUntil: 'domcontentloaded' });
 
   // Injecter le code pour intercepter l'audio
-  await page.evaluate(() => {
-    if (typeof AudioContext !== 'undefined' && typeof AudioWorklet !== 'undefined') {
-      const originalAudioContext = window.AudioContext || window.webkitAudioContext;
-      const audioContext = new originalAudioContext();
+  const stream = await page.evaluate(() => {
+    return new Promise((resolve, reject) => {
+      if (typeof AudioContext !== 'undefined' && typeof AudioWorklet !== 'undefined') {
+        const originalAudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new originalAudioContext();
 
-      const destination = audioContext.createMediaStreamDestination();
+        const destination = audioContext.createMediaStreamDestination();
 
-      audioContext.audioWorklet.addModule('websdr-sound.js').then(() => {
-        const workletNode = new AudioWorkletNode(audioContext, 'sound-processor');
-        workletNode.connect(destination);  // Connecter à la destination
+        audioContext.audioWorklet.addModule('websdr-sound.js').then(() => {
+          const workletNode = new AudioWorkletNode(audioContext, 'sound-processor');
+          workletNode.connect(destination);  // Connecter à la destination
 
-        // Connecter à la sortie audio
-        workletNode.connect(audioContext.destination);
+          // Connecter à la sortie audio
+          workletNode.connect(audioContext.destination);
 
-        const stream = destination.stream;
-        console.log("Audio stream captured:", stream);
-      });
-    } else {
-      console.log('AudioContext or AudioWorklet not supported.');
-    }
+          const stream = destination.stream;
+          resolve(stream);
+        }).catch(reject);
+      } else {
+        reject('AudioContext or AudioWorklet not supported.');
+      }
+    });
   });
 
-  console.log("Audio capture attempt complete.");
+  if (stream) {
+    // Envoi du stream audio au serveur Flask
+    const response = await axios.post('http://127.0.0.1:5000/upload-audio', stream, {
+      headers: {
+        'Content-Type': 'audio/webm'  // Format à définir selon la capture
+      }
+    });
+
+    console.log("Audio stream sent to server, response:", response.data);
+  } else {
+    console.log('Failed to capture audio stream.');
+  }
 
   await browser.close();
 }
