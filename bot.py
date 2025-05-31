@@ -25,51 +25,62 @@ async def play_uvb_stream(vc):
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
 
-    # Parcourir tous les serveurs auxquels le bot est connecté
     for guild in bot.guilds:
-        # Vérifier si un salon vocal "UVB-76" existe
+        # Vérifier les permissions du bot dans le serveur
+        me = guild.me
+        guild_perms = guild.me.guild_permissions
+
+        # Vérifier si le bot peut gérer les salons et se connecter
+        if not (guild_perms.manage_channels and guild_perms.connect and guild_perms.speak):
+            print(f"Skipping {guild.name}: missing permissions.")
+            continue
+
         voice_channel = discord.utils.get(guild.voice_channels, name="UVB-76")
         
         if voice_channel:
-            # Si déjà connecté, déconnecter d'abord
+            perms = voice_channel.permissions_for(me)
+            if not (perms.connect and perms.speak):
+                print(f"Skipping {guild.name}: missing connect/speak in {voice_channel.name}.")
+                continue
+
             if guild.voice_client and guild.voice_client.is_connected():
                 await guild.voice_client.disconnect()
 
-            # Connecter le bot au salon vocal
             vc = await voice_channel.connect()
-
-            # Attendre 10 secondes avant de diffuser
             await asyncio.sleep(10)
             await play_uvb_stream(vc)
         else:
-            # Créer le canal "UVB-76" s'il n'existe pas
+            # Vérifier si le bot peut créer un salon
+            if not guild_perms.manage_channels:
+                print(f"Skipping {guild.name}: cannot create channels.")
+                continue
             voice_channel = await guild.create_voice_channel("UVB-76")
             vc = await voice_channel.connect()
-
-            # Attendre 10 secondes avant de diffuser
             await asyncio.sleep(10)
             await play_uvb_stream(vc)
 
-    # Vérifier toutes les 10 secondes si de nouveaux serveurs ont un canal "UVB-76"
     while True:
         await asyncio.sleep(10)
         for guild in bot.guilds:
-            voice_channel = discord.utils.get(guild.voice_channels, name="UVB-76")
+            me = guild.me
+            guild_perms = guild.me.guild_permissions
+            if not (guild_perms.manage_channels and guild_perms.connect and guild_perms.speak):
+                continue
 
+            voice_channel = discord.utils.get(guild.voice_channels, name="UVB-76")
             if not voice_channel:
-                # Si un canal vocal "UVB-76" n'existe pas, le créer
+                if not guild_perms.manage_channels:
+                    continue
                 voice_channel = await guild.create_voice_channel("UVB-76")
                 vc = await voice_channel.connect()
-                
-                # Attendre 10 secondes avant de diffuser
                 await asyncio.sleep(10)
                 await play_uvb_stream(vc)
             else:
-                # Se reconnecter si déconnecté
+                perms = voice_channel.permissions_for(me)
+                if not (perms.connect and perms.speak):
+                    continue
                 if not guild.voice_client or not guild.voice_client.is_connected():
                     vc = await voice_channel.connect()
-
-                    # Attendre 10 secondes avant de diffuser
                     await asyncio.sleep(10)
                     await play_uvb_stream(vc)
 
